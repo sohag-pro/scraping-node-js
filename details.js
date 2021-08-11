@@ -11,12 +11,19 @@ let details = [];
 let count = 1;
 let details_count = 1;
 let link_count = 1;
-let from = 1; //page limit
+let from = 39110; //page limit
 let limit = 2; //page limit
 
 
 (async() => {
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+        args: [
+            '--no-sandbox',
+            '--headless',
+            '--disable-gpu',
+            '--window-size=1920x1080'
+        ]
+    });
     console.log('browser launched')
     const page = await browser.newPage();
     console.log('Tab opened')
@@ -29,7 +36,7 @@ let limit = 2; //page limit
                 for (y in links) {
                     var link = links[y]
                     var region = link.split('/')[3]
-                    if (region == 'nv' || region == 'ga') {
+                    if (region != 'nv' && region != 'ga') {
                         company_urls.push(link)
                     }
                 }
@@ -42,21 +49,28 @@ let limit = 2; //page limit
 
     link_count = unique_companies.length
     for (z in unique_companies) {
-        await get_details(page, unique_companies[z])
 
-        if (count % 10 == 0) {
-            fs.writeFile(`data/ga-nv_details-${count}.json`, JSON.stringify(details), function(err) {
-                if (err) {
-                    console.log(err);
-                }
-                console.log('file saved')
-                details = []
-            });
+        if (from < count) {
+
+            await get_details(page, unique_companies[z])
+
+            if (count % 10 == 0) {
+                fs.writeFile(`all/all_details-${count}.json`, JSON.stringify(details), function(err) {
+                    if (err) {
+                        console.log(err);
+                    }
+                    console.log('file saved')
+                    details = []
+                });
+            }
         }
+
+
+        count++;
 
     }
 
-    fs.writeFile(`data/ga-nv_details-${count}.json`, JSON.stringify(details), function(err) {
+    fs.writeFile(`all/all_details-${count}.json`, JSON.stringify(details), function(err) {
         if (err) {
             console.log(err);
         }
@@ -70,11 +84,16 @@ let limit = 2; //page limit
 async function get_details(page, link) {
 
     console.log(`Page no: ${count}, Left: ${link_count - count}`);
-    count++;
+
     if (true) {
         console.log('link: ' + link)
-        await page.setDefaultNavigationTimeout(0);
-        await page.goto("https://www.angi.com" + link);
+        try {
+            await page.setDefaultNavigationTimeout(0);
+            await page.goto("https://www.angi.com" + link);
+        } catch (error) {
+            return false
+        }
+
 
         let name = ''
         try {
